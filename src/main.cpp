@@ -3,6 +3,7 @@
 //2500 pulses per revolution
 //lead screw pitch 2 mm
 //1250 pules /mm
+//step distance = 0.0008 mm (distance traveled after 1 pulse)
 //Movement requirements
 // 4 inch stroke
 // 1 inch accel
@@ -29,11 +30,15 @@
 #define END_SWITCH_1_INPUT 2 //End Switch #1 (interrupts?)
 #define END_SWITCH_2_INPUT 3 //End Switch #2 (interrupts?)
 
+#define STEPS_PER_MM 1250
+#define STEP_DISTANCE 0.0008
+
 volatile bool m1Homed = false;
 volatile bool m2Homed = false;
 
-int pulseWidth = 1; //width of a single pulse
-int homingSpeedPulse = 1; //microseconds pulse delay for motor control when homing
+int pulseWidth = 1;  //width of a single pulse in  microseconds
+int defaultPulseGap = 10; //Default delay between pulses in microseconds
+int homingSpeedPulseGap = 1; //microseconds pulse delay for motor control when homing
 
 //interrupt for motor1 endstop
 void endSwitch1trig(){
@@ -50,33 +55,46 @@ void homeBoth(){
   while (m1Homed!=true){
     //Microsecond pulse loop
     digitalWrite(MOTOR_1_CCW, HIGH);//check if correct direction
-    delayMicroseconds(homingSpeedPulse);
+    delayMicroseconds(pulseWidth);
     digitalWrite(MOTOR_1_CCW, LOW);//check if correct direction
-    delayMicroseconds(homingSpeedPulse);
+    delayMicroseconds(pulseWidth);
   }
   
   //home motor 2
   while (m2Homed!=true){
     //Microsecond pulse loop
     digitalWrite(MOTOR_2_CCW, HIGH);//check if correct direction
-    delayMicroseconds(homingSpeedPulse);
+    delayMicroseconds(pulseWidth);
     digitalWrite(MOTOR_2_CCW, LOW);//check if correct direction
-    delayMicroseconds(homingSpeedPulse);
+    delayMicroseconds(pulseWidth);
     
   }
 }
 
-void m1Move(int dir, int steps){
+void m1MoveConstantV(float distance, int pulseGap){
   int curStep = 0;
-  while (curStep<steps){
-    //Microsecond pulse loop
-    digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
-    delayMicroseconds(homingSpeedPulse);
-    digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-    delayMicroseconds(homingSpeedPulse);
-    curStep++;
+  int distanceInSteps = int(abs(distance)/STEP_DISTANCE); // get absolute value desired distance in mm and divide by step distance to get desired step distance and covert to int 
+  while (curStep<distanceInSteps){
+    if(distance>0){ //positive values moves towards origin endstop(CCW)
+      //Microsecond pulse loop
+      digitalWrite(MOTOR_1_CCW, HIGH);//check if correct direction
+      delayMicroseconds(pulseWidth);
+      digitalWrite(MOTOR_1_CCW, LOW);//check if correct direction
+      delayMicroseconds(pulseWidth);
+      curStep++;
+    } else if (distance <0){ //negative values moves away from origin endstop(CW)
+      //Microsecond pulse loop
+      digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
+      delayMicroseconds(pulseWidth);
+      digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
+      delayMicroseconds(pulseWidth);
+      curStep++;
+    }
   }
 }
+
+//move const speed(distance,speed,motor)
+//move velocity change (distance,start speed,end speed,motor)
 
 void setup() {
   //testonly
@@ -96,7 +114,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(END_SWITCH_2_INPUT),endSwitch2trig,RISING); //check if triggered on boot up
 }
 
-int doneHoming= 0;
+//int doneHoming= 0;
 
 void loop() {
   //home
