@@ -1,11 +1,19 @@
-//10000ppr
-//pitch?
-//steps per mm?
-
+//500ppr on driver
+//stepper has a 5:1 gear reduction
+//2500 pulses per revolution
+//lead screw pitch 2 mm
+//1250 pules /mm
+//Movement requirements
+// 4 inch stroke
+// 1 inch accel
+// 2 inch full speed
+// 1 inch deccel
+// homing at full speed
+//alternating movement
+//move const speed(distance,speed,motor)
+//move velocity change (distance,start speed,end speed,motor)
 
 #include <Arduino.h>
-#include <AccelStepper.h>
-
 
 //Motor 1 connections
 #define MOTOR_1_CW 4  //white
@@ -20,8 +28,6 @@
 //End stops
 #define END_SWITCH_1_INPUT 2 //End Switch #1 (interrupts?)
 #define END_SWITCH_2_INPUT 3 //End Switch #2 (interrupts?)
-
-AccelStepper stepper1(AccelStepper::DRIVER, MOTOR_1_CW, 12);
 
 volatile bool m1Homed = false;
 volatile bool m2Homed = false;
@@ -88,56 +94,19 @@ void setup() {
   //Interrupts
   attachInterrupt(digitalPinToInterrupt(END_SWITCH_1_INPUT),endSwitch1trig,RISING); //check if triggered on boot up
   attachInterrupt(digitalPinToInterrupt(END_SWITCH_2_INPUT),endSwitch2trig,RISING); //check if triggered on boot up
-
-  stepper1.setMaxSpeed(200.0);
-  stepper1.setAcceleration(200.0);
 }
 
 int doneHoming= 0;
-int doneMoving= 0;
 
 void loop() {
   //home
   if (m1Homed==false || m2Homed ==false){
     homeBoth();
-  } else if (doneHoming == 0) {
-    doneHoming = 1;
-    
+  // } else if (doneHoming == 0) {
+  //   doneHoming = 1;    
   }
-  
-  stepper1.runSpeed();
-
   // digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
   // delayMicroseconds(pulseWidth); 
   // digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-  // delayMicroseconds(10);
-
-  // if (doneMoving == 0){
-  //   m1Move(1,250);
-  //   doneMoving = 1;
-  // }
-  // Serial.print("M1 status: ");
-  // Serial.println(String(m1Homed));
-  // Serial.print("M2 status: ");
-  // Serial.println(String(m2Homed));
-  // delay(500);
-  // Serial.println("NewLoop Starts here");
-  // delay(250);
-  // if(digitalRead(END_SWITCH_1_INPUT)==HIGH){
-  //   Serial.println("Endstop triggered");
-  // }
-  // delay(250);
-  //Microsecond pulse loop
-  //if (done ==0){
-    //Serial.println("inside if");
-    //for(int i=0;i<=2500;i++){
-      // digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
-      // delayMicroseconds(homingSpeedPulse);
-      // digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-      // delayMicroseconds(homingSpeedPulse);
-      // //Serial.println("DOing step");
-    //}
-   // done =1;
-    //}
-  //}
+  // delayMicroseconds(10);   
 }
