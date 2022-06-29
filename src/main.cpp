@@ -133,9 +133,14 @@ void setup() {
   //Interrupts
   attachInterrupt(digitalPinToInterrupt(END_SWITCH_1_INPUT),endSwitch1trig,RISING); //check if triggered on boot up
   attachInterrupt(digitalPinToInterrupt(END_SWITCH_2_INPUT),endSwitch2trig,RISING); //check if triggered on boot up
-
+  //Check endstops status
+  m1Homed = digitalRead(END_SWITCH_1_INPUT);   // read the input pin
+  m2Homed = digitalRead(END_SWITCH_2_INPUT);
+  //Stepper config
   stepper1.setMaxSpeed(1000);
   stepper1.setSpeed(50);
+ 
+
 }
 
 //int doneHoming= 0;
