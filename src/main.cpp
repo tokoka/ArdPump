@@ -18,18 +18,18 @@
 #include <AccelStepper.h>
 
 //Motor 1 connections
-#define MOTOR_1_CW 4  //white
-#define MOTOR_1_CCW 5 //orange
-#define MOTOR_1_C_ON 6 //red
+#define MOTOR_1_CW 17  //white
+#define MOTOR_1_CCW 18 //orange
+#define MOTOR_1_C_ON 4 //red
 
 //Motor 2 connections
-#define MOTOR_2_CW 7  //white
-#define MOTOR_2_CCW 8 //orange
-#define MOTOR_2_C_ON 9 //red
+#define MOTOR_2_CW 33  //white
+#define MOTOR_2_CCW 32 //orange
+#define MOTOR_2_C_ON 2 //red
 
 //End stops
-#define END_SWITCH_1_INPUT 2 //End Switch #1 (interrupts?)
-#define END_SWITCH_2_INPUT 3 //End Switch #2 (interrupts?)
+#define END_SWITCH_1_INPUT 12 //End Switch #1 (interrupts?)
+#define END_SWITCH_2_INPUT 14 //End Switch #2 (interrupts?)
 
 #define STEPS_PER_MM 1250
 #define STEP_DISTANCE 0.0008
