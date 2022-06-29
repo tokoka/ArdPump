@@ -35,6 +35,7 @@
 #define STEP_DISTANCE 0.0008
 
 AccelStepper stepper1(2,MOTOR_1_CW, MOTOR_1_CCW);
+AccelStepper stepper2(2,MOTOR_2_CW, MOTOR_2_CCW);
 
 
 void setup() {
@@ -57,6 +58,15 @@ void setup() {
     //2500 distance = 1mm
     stepper1.setSpeed (100000.0);
     stepper1.moveTo(50000);
+
+    
+    stepper2.setMaxSpeed(30000.0);
+    stepper2.setAcceleration(10000.0);
+    stepper2.setMinPulseWidth(10);
+    //50k = 20mm
+    //2500 distance = 1mm
+    stepper2.setSpeed (100000.0);
+    stepper2.moveTo(50000);
 }
 
 void loop() {
@@ -68,10 +78,10 @@ void loop() {
   //1 dir away from endstop
   // params: dir, Pulse gap
 
-  if (stepper1.distanceToGo() == 0){
-    stepper1.moveTo(-stepper1.currentPosition());
-  }
-    stepper1.run();
+  // if (stepper2.distanceToGo() == 0){
+  //   stepper2.moveTo(-stepper2.currentPosition());
+  // }
+  //   stepper2.run();
 
 
   // int pulseGap = 3000; //microseconds
