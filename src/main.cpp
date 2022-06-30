@@ -45,9 +45,10 @@ volatile bool m2Homed = false;
 AccelStepper stepper1(2,MOTOR_1_CW, MOTOR_1_CCW);
 AccelStepper stepper2(2,MOTOR_2_CW, MOTOR_2_CCW);
 
-
-
 int homingPulseWidth = 50;
+//long travelDistance = 508000; // 4inch
+long travelDistance = 127000;//1 inch TEST ONLY
+
 
 //interrupt for motor1 endstop
 void endSwitch1trig(){
@@ -138,6 +139,8 @@ bool stage1inProgress = 0;
 bool stage2inProgress = 0;
 bool stage3inProgress = 0;
 bool stage4inProgress = 0;
+bool interStage1initiated = 0;
+bool interStage2initiated = 0;
 
 
 
@@ -152,8 +155,8 @@ void loop() {
   }
   //1.Travel 4 inches negative on both cylinders to fully compress both
   if(initialCompression == true){
-    stepper1.moveTo(-508000);
-    stepper2.moveTo(-508000);
+    stepper1.moveTo(-travelDistance);
+    stepper2.moveTo(-travelDistance);
     initialCompression = 0;
     stage1inProgress = 1;
     Serial.println("Start Stage 1");    
@@ -173,13 +176,7 @@ void loop() {
     stage2inProgress = 1; 
     Serial.println("Start Stage 2");
   }
-  
-   //Interstage 1
-  if((stepper1.distanceToGo()) == 2000 ){
-    stepper2.moveTo(-506000)
-  }
-
-
+ 
   //End stage 2 start stage 3
   if ((stage2inProgress == 1) && (stepper1.distanceToGo() == 0) && (stepper2.distanceToGo() == 0)){
       stage2inProgress = 0;
@@ -189,39 +186,65 @@ void loop() {
   }
   
 
-  //3.Run 2nd cylinders up fast while bringing 1st cylinder down slow negative 4 inches
+  //3.Run 2nd cylinder up fast while bringing 1st cylinder down slow negative 4 inches
   if(Fill2Run1 == true){
-    stepper1.moveTo(-508000);
+    stepper1.moveTo(-travelDistance);
     stepper1.setMaxSpeed (10000.0);
     stepper2.moveTo(0);
     stepper2.setMaxSpeed (30000.0);
     Fill2Run1 = 0; 
-    stage3inProgress = 1; 
+    stage3inProgress = 1;
+    interStage1initiated = 1; 
     Serial.println("Start Stage 3");
   }
 
+  //Interstage 1
+  if(((stepper1.distanceToGo()) == (-10000)) && (interStage1initiated == 1)){ //increase or decrease 10k for more or less simulatnious runniung
+    stepper2.moveTo(-travelDistance);
+    stepper2.setMaxSpeed (10000.0);
+    
+    Serial.println((stepper1.distanceToGo()));
+    Serial.println("Interstage 1 triggered");
+    Serial.print("Interstage1initiated is ");
+    Serial.println(interStage1initiated);
+    interStage1initiated = 0;
+    Serial.print("Interstage1initiated after switching to 0 is ");
+    Serial.println(interStage1initiated);
+  }
  
   //End stage 3 start stage 4
-  if ((stage3inProgress == 1) && (stepper1.distanceToGo() == 0) && (stepper2.distanceToGo() == 0)){
+  if ((stage3inProgress == 1) && (stepper1.distanceToGo() == 0)){
       stage3inProgress = 0;
       stage4inProgress = 1;
       Fill1Run2 = 1;
       Serial.println("End Stage 3");
   }
+
+ 
   
   // //4.Run 1st cylinder up fast while bringing 2nd cylinder down slow negative 4 inches
   if(Fill1Run2 == true){
     stepper1.moveTo(0);
     stepper1.setMaxSpeed (30000.0);
-    stepper2.moveTo(-508000);
+    stepper2.moveTo(-travelDistance);
     stepper2.setMaxSpeed (10000.0);
     Fill1Run2 = 0; 
-    stage4inProgress = 1; 
+    stage4inProgress = 1;
+    interStage2initiated = 1; 
     Serial.println("Start Stage 4");
   }
-  
-  //End stage 3 start stage 4
-  if ((stage4inProgress == 1) && (stepper1.distanceToGo() == 0) && (stepper2.distanceToGo() == 0)){
+
+  //Interstage 2
+  if(((stepper2.distanceToGo()) == (-10000)) && (interStage2initiated == 1)){
+    stepper1.moveTo(-travelDistance);
+    stepper1.setMaxSpeed (10000.0);
+    interStage2initiated = 0;
+    Serial.println("Interstage 2");
+    
+  }
+
+  //End stage 4 start stage 3
+  if ((stage4inProgress == 1) && (stepper2.distanceToGo() == 0)){
       stage4inProgress = 0;
       stage3inProgress = 1;
       Fill2Run1 = 1;
