@@ -46,8 +46,9 @@ AccelStepper stepper1(2,MOTOR_1_CW, MOTOR_1_CCW);
 AccelStepper stepper2(2,MOTOR_2_CW, MOTOR_2_CCW);
 
 int homingPulseWidth = 50;
-//long travelDistance = 508000; // 4inch
-long travelDistance = 127000;//1 inch TEST ONLY
+// long travelDistance = 508000; // 4inch
+long travelDistance = 381000; //3inch
+//long travelDistance = 127000;//1 inch TEST ONLY
 
 
 //interrupt for motor1 endstop
