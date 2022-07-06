@@ -13,39 +13,61 @@
 //alternating movement
 //move const speed(distance,speed,motor)
 //move velocity change (distance,start speed,end speed,motor)
+//--------Using accelstepper -----------------
+//50k = 20mm
+//2500 distance = 1mm
 
 #include <Arduino.h>
 #include <AccelStepper.h>
-
+//-------------------------------------------------PINS----------------------------------------------------
 //Motor 1 connections
-#define MOTOR_1_CW 4  //white
-#define MOTOR_1_CCW 5 //orange
-#define MOTOR_1_C_ON 6 //red
+#define MOTOR_1_CW 12  //white
+#define MOTOR_1_CCW 27 //orange
+#define MOTOR_1_C_ON 26 //red
 
 //Motor 2 connections
-#define MOTOR_2_CW 7  //white
-#define MOTOR_2_CCW 8 //orange
-#define MOTOR_2_C_ON 9 //red
+#define MOTOR_2_CW 25 //white
+#define MOTOR_2_CCW 33 //orange
+#define MOTOR_2_C_ON 32 //red
 
 //End stops
-#define END_SWITCH_1_INPUT 2 //End Switch #1 (interrupts?)
-#define END_SWITCH_2_INPUT 3 //End Switch #2 (interrupts?)
+#define END_SWITCH_1_INPUT 13 //End Switch #1 (interrupts)
+#define END_SWITCH_2_INPUT 14 //End Switch #2 (interrupts)
+
+//--------------------------------------------PARAMETERS----------------------------
 
 #define STEPS_PER_MM 1250
 #define STEP_DISTANCE 0.0008
 
-AccelStepper stepper1 (2,MOTOR_1_CW,MOTOR_2_CCW);
+//Initial AccelStepper params for setup
+float initialMaxSpeed = 0.0;
+float initialAccel = 10000.0;
+float initialSpeed = 100000.0;
+unsigned int  minPulseWidth = 10;
 
+//AccelStepper Params for stags 3 and 4
+float pumpFastSpeed = 30000.0;
+float pumpSlowSpeed = 10000.0;
+long distanceToGoB4SimulaniousPump = 10000;
+
+
+//Interrupts vars
 volatile bool m1Homed = false;
 volatile bool m2Homed = false;
 
-int pulseWidth = 10;  //width of a single pulse in  microseconds
-int defaultPulseGap = 100; //Default delay between pulses in microseconds
-int homingSpeedPulseGap = 100; //microseconds pulse delay for motor control when homing
+
+AccelStepper stepper1(2,MOTOR_1_CW, MOTOR_1_CCW);
+AccelStepper stepper2(2,MOTOR_2_CW, MOTOR_2_CCW);
+
+int homingPulseWidth = 50;
+// long travelDistance = 508000; // 4inch
+long travelDistance = 381000; //3inch
+//long travelDistance = 127000;//1 inch TEST ONLY
+
 
 //interrupt for motor1 endstop
 void endSwitch1trig(){
- m1Homed = true;
+  m1Homed = true;
 }
 
 //interrupt for motor2 endstop
@@ -58,68 +80,40 @@ void homeBoth(){
   while (m1Homed!=true){
     //Microsecond pulse loop
     digitalWrite(MOTOR_1_CCW, HIGH);//check if correct direction
-    delayMicroseconds(homingSpeedPulseGap);
+    delayMicroseconds(homingPulseWidth);
     digitalWrite(MOTOR_1_CCW, LOW);//check if correct direction
-    delayMicroseconds(homingSpeedPulseGap);
+    delayMicroseconds(homingPulseWidth);
   }
-  
+  //Move 5mm out(6250 pulses)
+  int counter = 0;
+  while (counter<6250){
+    //Microsecond pulse loop
+    digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
+    delayMicroseconds(homingPulseWidth);
+    digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
+    delayMicroseconds(homingPulseWidth);
+    counter++;
+  }
   //home motor 2
   while (m2Homed!=true){
     //Microsecond pulse loop
     digitalWrite(MOTOR_2_CCW, HIGH);//check if correct direction
-    delayMicroseconds(homingSpeedPulseGap);
+    delayMicroseconds(homingPulseWidth);
     digitalWrite(MOTOR_2_CCW, LOW);//check if correct direction
-    delayMicroseconds(homingSpeedPulseGap);
-    
+    delayMicroseconds(homingPulseWidth);
+  }
+  counter = 0;
+  while (counter<6250){
+    //Microsecond pulse loop
+    digitalWrite(MOTOR_2_CW, HIGH);//check if correct direction
+    delayMicroseconds(homingPulseWidth);
+    digitalWrite(MOTOR_2_CW, LOW);//check if correct direction
+    delayMicroseconds(homingPulseWidth);
+    counter++;
   }
 }
-
-void m1MoveConstantV(float distance, int pulseGap){
-  long curStep = 0;
-  long distanceInSteps = long((abs(distance))/STEP_DISTANCE); // get absolute value desired distance in mm and divide by step distance to get desired step distance and covert to int 
-  
-  if(distance>0){ //positive values moves towards origin endstop(CCW)
-    while (curStep<distanceInSteps){
-      //Microsecond pulse loop
-      digitalWrite(MOTOR_1_CCW, HIGH);//check if correct direction
-      delayMicroseconds(pulseWidth);
-      digitalWrite(MOTOR_1_CCW, LOW);//check if correct direction
-      delayMicroseconds(pulseGap);
-      curStep++;
-    }
-  } else if (distance <0){ //negative values moves away from origin endstop(CW)
-    while (curStep<distanceInSteps){
-      //Microsecond pulse loop
-      digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
-      delayMicroseconds(pulseWidth);
-      digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-      delayMicroseconds(pulseGap);
-      curStep++;
-    }
-  }
-}
-
-//move const speed(distance,speed,motor)
-//move velocity change (distance,start speed,end speed,motor)
-
-void algoMoveAccel1(int dir, int pulseGap){
-  if (dir == 0 ){
-    digitalWrite(MOTOR_1_CCW, HIGH);//check if correct direction
-    delayMicroseconds(pulseGap);
-    digitalWrite(MOTOR_1_CCW, LOW);//check if correct direction
-    delayMicroseconds(pulseGap);
-  } else if (dir ==1){
-    digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
-    delayMicroseconds(pulseGap);
-    digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-    delayMicroseconds(pulseGap);
-  }
-}
-
 
 void setup() {
-  //testonly
-  Serial.begin(9600); // open the serial port at 9600 bps:
   pinMode(MOTOR_1_CW, OUTPUT);
   pinMode(MOTOR_1_CCW, OUTPUT);
   pinMode(MOTOR_1_C_ON, OUTPUT);
@@ -136,93 +130,151 @@ void setup() {
   //Check endstops status
   m1Homed = digitalRead(END_SWITCH_1_INPUT);   // read the input pin
   m2Homed = digitalRead(END_SWITCH_2_INPUT);
-  //Stepper config
-  stepper1.setMaxSpeed(1000);
-  stepper1.setSpeed(50);
- 
 
+  //Stepper 1 AccelStepper params 
+  stepper1.setMaxSpeed(initialMaxSpeed);
+  stepper1.setAcceleration(initialAccel);
+  stepper1.setMinPulseWidth(minPulseWidth);
+  stepper1.setSpeed (initialSpeed);
+  //Stepper 2 AccelStepper params  
+  stepper2.setMaxSpeed(initialMaxSpeed);
+  stepper2.setAcceleration(initialAccel);
+  stepper2.setMinPulseWidth(minPulseWidth);
+  stepper2.setSpeed (initialSpeed);
+
+  //Serial.begin(115200);
 }
 
-//int doneHoming= 0;
+//Algo stages
+bool initialCompression = 1;
+bool firstRunFirstCylinder = 0;
+bool Fill2Run1 = 0;
+bool Fill1Run2 = 0;
+bool stage1inProgress = 0;
+bool stage2inProgress = 0;
+bool stage3inProgress = 0;
+bool stage4inProgress = 0;
+bool interStage1initiated = 0;
+bool interStage2initiated = 0;
+
+
 
 void loop() {
-  //home
+  //home; set as origin and move 5mm out
   if (m1Homed==false || m2Homed ==false){
+    Serial.println("Start homing");
     homeBoth();
-  // } else if (doneHoming == 0) {
-  //   doneHoming = 1;    
+    stepper1.setCurrentPosition(0);
+    stepper1.setCurrentPosition(0);
+    Serial.println("Homing Done");
   }
-  //m1MoveConstantV(-25,200);
+  //1.Travel 4 inches negative on both cylinders to fully compress both
+  if(initialCompression == true){
+    stepper1.moveTo(-travelDistance);
+    stepper2.moveTo(-travelDistance);
+    initialCompression = 0;
+    stage1inProgress = 1;
+    Serial.println("Start Stage 1");    
+  }
+  //End stage 1 start stage 2
+  if ((stage1inProgress == 1) && (stepper1.distanceToGo() == 0) && (stepper2.distanceToGo() == 0)){
+      stage1inProgress = 0;
+      stage2inProgress = 1;
+      firstRunFirstCylinder = 1;
+      Serial.println("End Stage 1");            
+  }
+  //2.Run first cylinder up(positive) 4 inches fast
+  if(firstRunFirstCylinder == 1){
+    stepper1.moveTo(0);
+    stepper1.setMaxSpeed (pumpFastSpeed);
+    firstRunFirstCylinder = 0; 
+    stage2inProgress = 1; 
+    Serial.println("Start Stage 2");
+  }
  
-  //1 inch = 25.4 mm
-  //25.4 devided by 0.0008  (step distance )= 31,750
-  //1 inch is 31.750 steps
-  //accelerate for 1 inch
-  //0 dir towards endstop
-  //1 dir away from endstop
-  // params: dir, Pulse gap
-  int pulseGap = 5000; //microseconds
-  long curStep = 0; 
-  // 1 inch accel 
-  while (curStep<31750){
-    digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
-    delayMicroseconds(pulseGap);
-    if(pulseGap>100){
-      pulseGap=pulseGap-1;
-    }
-    digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-    delayMicroseconds(pulseGap);
-    if(pulseGap>100){
-      pulseGap=pulseGap-1;
-    }
-    curStep++;
+  //End stage 2 start stage 3
+  if ((stage2inProgress == 1) && (stepper1.distanceToGo() == 0) && (stepper2.distanceToGo() == 0)){
+      stage2inProgress = 0;
+      stage3inProgress = 1;
+      Fill2Run1 = 1;
+      Serial.println("End Stage 2");
   }
-  curStep = 0; 
-  pulseGap = 100;
-  while (curStep<31750){
-  digitalWrite(MOTOR_1_CW, HIGH);//check if correct direction
-  delayMicroseconds(pulseGap);
-  if(pulseGap<=5000){
-    pulseGap=pulseGap+1;
-  }
-  digitalWrite(MOTOR_1_CW, LOW);//check if correct direction
-  delayMicroseconds(pulseGap);
-  if(pulseGap<=5000){
-    pulseGap=pulseGap+1;
-  }
-    curStep++;
-  }
-  // while (curStep<31750){
-  //     algoMoveAccel1(1,pulseGap);
-  //     if(pulseGap>4000){
-  //       pulseGap=pulseGap-50;
-  //     } else if (pulseGap>3000){
-  //       pulseGap = pulseGap -40;
-  //     } else if (pulseGap>2500){
-  //       pulseGap = pulseGap -20;
-  //     } else if (pulseGap>2000){
-  //       pulseGap = pulseGap -12;
-  //     } else if (pulseGap>1500){
-  //       pulseGap = pulseGap -10;
-  //     } else if (pulseGap>1250){
-  //       pulseGap = pulseGap -8;
-  //     } else if (pulseGap>1000){
-  //       pulseGap = pulseGap -4;
-  //     } else if (pulseGap>750){
-  //       pulseGap = pulseGap -3;
-  //     } else if (pulseGap>500){
-  //       pulseGap = pulseGap -2;
-  //     } else if (pulseGap>100){
-  //       pulseGap = pulseGap -1;
-  //     }
-  //     curStep++;
-  //   }
-  //stepper1.runSpeed();
+  
 
-  m1Homed = false;
-  // m2Homed = false;
-  // digitalWrite(MOTOR_2_CW, HIGH);//check if correct direction
-  // delayMicroseconds(10); 
-  // digitalWrite(MOTOR_2_CW, LOW);//check if correct direction
-  // delayMicroseconds(100);   
+  //3.Run 2nd cylinder up fast while bringing 1st cylinder down slow negative 4 inches
+  if(Fill2Run1 == true){
+    stepper1.moveTo(-travelDistance);
+    stepper1.setMaxSpeed (pumpSlowSpeed);
+    stepper2.moveTo(0);
+    stepper2.setMaxSpeed (pumpFastSpeed);
+    Fill2Run1 = 0; 
+    stage3inProgress = 1;
+    interStage1initiated = 1; 
+    Serial.println("Start Stage 3");
+  }
+
+  //Interstage 1
+  if(((stepper1.distanceToGo()) == (-distanceToGoB4SimulaniousPump)) && (interStage1initiated == 1)){ //increase or decrease 10k for more or less simulatnious runniung
+    stepper2.moveTo(-travelDistance);
+    stepper2.setMaxSpeed (pumpSlowSpeed);
+    
+    Serial.println((stepper1.distanceToGo()));
+    Serial.println("Interstage 1 triggered");
+    Serial.print("Interstage1initiated is ");
+    Serial.println(interStage1initiated);
+    interStage1initiated = 0;
+    Serial.print("Interstage1initiated after switching to 0 is ");
+    Serial.println(interStage1initiated);
+  }
+ 
+  //End stage 3 start stage 4
+  if ((stage3inProgress == 1) && (stepper1.distanceToGo() == 0)){
+      stage3inProgress = 0;
+      stage4inProgress = 1;
+      Fill1Run2 = 1;
+      Serial.println("End Stage 3");
+  }
+
+ 
+  
+  // //4.Run 1st cylinder up fast while bringing 2nd cylinder down slow negative 4 inches
+  if(Fill1Run2 == true){
+    stepper1.moveTo(0);
+    stepper1.setMaxSpeed (pumpFastSpeed);
+    stepper2.moveTo(-travelDistance);
+    stepper2.setMaxSpeed (pumpSlowSpeed);
+    Fill1Run2 = 0; 
+    stage4inProgress = 1;
+    interStage2initiated = 1; 
+    Serial.println("Start Stage 4");
+  }
+
+  //Interstage 2
+  if(((stepper2.distanceToGo()) == (-distanceToGoB4SimulaniousPump)) && (interStage2initiated == 1)){
+    stepper1.moveTo(-travelDistance);
+    stepper1.setMaxSpeed (pumpSlowSpeed);
+    interStage2initiated = 0;
+    Serial.println("Interstage 2");
+    
+  }
+
+  //End stage 4 start stage 3
+  if ((stage4inProgress == 1) && (stepper2.distanceToGo() == 0)){
+      stage4inProgress = 0;
+      stage3inProgress = 1;
+      Fill2Run1 = 1;
+      Serial.println("End Stage 4");
+  }
+  
+
+  //accelstepper 
+  //0.0002 mm per 1 position of Accelstepper
+
+  // //Travel distance of 4 inches(101.6mm) in steps
+  // long stepper1TravelDistance = 254000;
+  // long stepper2TravelDistance = 254000;
+ 
+  stepper1.run();
+  stepper2.run();
+  
 }
