@@ -19,7 +19,7 @@
 
 #include <Arduino.h>
 #include <AccelStepper.h>
-
+//-------------------------------------------------PINS----------------------------------------------------
 //Motor 1 connections
 #define MOTOR_1_CW 12  //white
 #define MOTOR_1_CCW 27 //orange
@@ -31,11 +31,25 @@
 #define MOTOR_2_C_ON 32 //red
 
 //End stops
-#define END_SWITCH_1_INPUT 13 //End Switch #1 (interrupts?)
-#define END_SWITCH_2_INPUT 14 //End Switch #2 (interrupts?)
+#define END_SWITCH_1_INPUT 13 //End Switch #1 (interrupts)
+#define END_SWITCH_2_INPUT 14 //End Switch #2 (interrupts)
+
+//--------------------------------------------PARAMETERS----------------------------
 
 #define STEPS_PER_MM 1250
 #define STEP_DISTANCE 0.0008
+
+//Initial AccelStepper params for setup
+float initialMaxSpeed = 0.0;
+float initialAccel = 10000.0;
+float initialSpeed = 100000.0;
+unsigned int  minPulseWidth = 10;
+
+//AccelStepper Params for stags 3 and 4
+float pumpFastSpeed = 30000.0;
+float pumpSlowSpeed = 10000.0;
+long distanceToGoB4SimulaniousPump = 10000;
+
 
 //Interrupts vars
 volatile bool m1Homed = false;
@@ -70,7 +84,7 @@ void homeBoth(){
     digitalWrite(MOTOR_1_CCW, LOW);//check if correct direction
     delayMicroseconds(homingPulseWidth);
   }
-  //Move 5mm out
+  //Move 5mm out(6250 pulses)
   int counter = 0;
   while (counter<6250){
     //Microsecond pulse loop
@@ -118,17 +132,17 @@ void setup() {
   m2Homed = digitalRead(END_SWITCH_2_INPUT);
 
   //Stepper 1 AccelStepper params 
-  stepper1.setMaxSpeed(20000.0);
-  stepper1.setAcceleration(10000.0);
-  stepper1.setMinPulseWidth(10);
-  stepper1.setSpeed (200000.0);
+  stepper1.setMaxSpeed(initialMaxSpeed);
+  stepper1.setAcceleration(initialAccel);
+  stepper1.setMinPulseWidth(minPulseWidth);
+  stepper1.setSpeed (initialSpeed);
   //Stepper 2 AccelStepper params  
-  stepper2.setMaxSpeed(20000.0);
-  stepper2.setAcceleration(10000.0);
-  stepper2.setMinPulseWidth(10);
-  stepper2.setSpeed (200000.0);
+  stepper2.setMaxSpeed(initialMaxSpeed);
+  stepper2.setAcceleration(initialAccel);
+  stepper2.setMinPulseWidth(minPulseWidth);
+  stepper2.setSpeed (initialSpeed);
 
-  Serial.begin(115200);
+  //Serial.begin(115200);
 }
 
 //Algo stages
@@ -172,7 +186,7 @@ void loop() {
   //2.Run first cylinder up(positive) 4 inches fast
   if(firstRunFirstCylinder == 1){
     stepper1.moveTo(0);
-    stepper1.setMaxSpeed (60000.0);
+    stepper1.setMaxSpeed (pumpFastSpeed);
     firstRunFirstCylinder = 0; 
     stage2inProgress = 1; 
     Serial.println("Start Stage 2");
@@ -190,9 +204,9 @@ void loop() {
   //3.Run 2nd cylinder up fast while bringing 1st cylinder down slow negative 4 inches
   if(Fill2Run1 == true){
     stepper1.moveTo(-travelDistance);
-    stepper1.setMaxSpeed (20000.0);
+    stepper1.setMaxSpeed (pumpSlowSpeed);
     stepper2.moveTo(0);
-    stepper2.setMaxSpeed (60000.0);
+    stepper2.setMaxSpeed (pumpFastSpeed);
     Fill2Run1 = 0; 
     stage3inProgress = 1;
     interStage1initiated = 1; 
@@ -200,9 +214,9 @@ void loop() {
   }
 
   //Interstage 1
-  if(((stepper1.distanceToGo()) == (-10000)) && (interStage1initiated == 1)){ //increase or decrease 10k for more or less simulatnious runniung
+  if(((stepper1.distanceToGo()) == (-distanceToGoB4SimulaniousPump)) && (interStage1initiated == 1)){ //increase or decrease 10k for more or less simulatnious runniung
     stepper2.moveTo(-travelDistance);
-    stepper2.setMaxSpeed (20000.0);
+    stepper2.setMaxSpeed (pumpSlowSpeed);
     
     Serial.println((stepper1.distanceToGo()));
     Serial.println("Interstage 1 triggered");
@@ -226,9 +240,9 @@ void loop() {
   // //4.Run 1st cylinder up fast while bringing 2nd cylinder down slow negative 4 inches
   if(Fill1Run2 == true){
     stepper1.moveTo(0);
-    stepper1.setMaxSpeed (60000.0);
+    stepper1.setMaxSpeed (pumpFastSpeed);
     stepper2.moveTo(-travelDistance);
-    stepper2.setMaxSpeed (20000.0);
+    stepper2.setMaxSpeed (pumpSlowSpeed);
     Fill1Run2 = 0; 
     stage4inProgress = 1;
     interStage2initiated = 1; 
@@ -236,9 +250,9 @@ void loop() {
   }
 
   //Interstage 2
-  if(((stepper2.distanceToGo()) == (-10000)) && (interStage2initiated == 1)){
+  if(((stepper2.distanceToGo()) == (-distanceToGoB4SimulaniousPump)) && (interStage2initiated == 1)){
     stepper1.moveTo(-travelDistance);
-    stepper1.setMaxSpeed (20000.0);
+    stepper1.setMaxSpeed (pumpSlowSpeed);
     interStage2initiated = 0;
     Serial.println("Interstage 2");
     
